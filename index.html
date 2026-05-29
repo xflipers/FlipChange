@@ -1,0 +1,243 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NovaX Demo Exchange</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <aside class="sidebar" aria-label="Основная навигация">
+        <a class="brand" href="#" aria-label="NovaX">
+          <span class="brand-mark"></span>
+          <span>
+            <strong>NovaX</strong>
+            <small>Demo Exchange</small>
+          </span>
+        </a>
+
+        <nav class="nav-list">
+          <button class="nav-item active" type="button" data-view="markets" title="Рынки">
+            <span class="nav-icon">◆</span>
+            <span>Рынки</span>
+          </button>
+          <button class="nav-item" type="button" data-view="trade" title="Торговля">
+            <span class="nav-icon">↗</span>
+            <span>Торговля</span>
+          </button>
+          <button class="nav-item" type="button" data-view="portfolio" title="Портфель">
+            <span class="nav-icon">◍</span>
+            <span>Портфель</span>
+          </button>
+          <button class="nav-item" type="button" data-view="history" title="История">
+            <span class="nav-icon">≡</span>
+            <span>История</span>
+          </button>
+        </nav>
+
+        <div class="sidebar-card">
+          <span class="muted">Demo Balance</span>
+          <strong id="sidebarBalance">$100,000.00</strong>
+          <small id="sidebarPnl">P&L 0.00%</small>
+        </div>
+      </aside>
+
+      <main class="main">
+        <header class="topbar">
+          <div>
+            <p class="eyebrow">Premium crypto terminal</p>
+            <h1>NovaX</h1>
+          </div>
+          <div class="topbar-actions">
+            <div class="status-pill" id="connectionStatus">
+              <span class="status-dot"></span>
+              <span>Подключение</span>
+            </div>
+            <button class="ghost-button" id="resetDemo" type="button">Сброс демо</button>
+          </div>
+        </header>
+
+        <section class="ticker-strip" id="tickerStrip" aria-label="Котировки"></section>
+
+        <section class="view active" id="markets">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Live watchlist</p>
+              <h2>Популярные рынки</h2>
+            </div>
+            <div class="segmented">
+              <button class="active" type="button">USDT</button>
+              <button type="button">Spot</button>
+            </div>
+          </div>
+
+          <div class="market-grid">
+            <div class="market-table-wrap">
+              <table class="market-table">
+                <thead>
+                  <tr>
+                    <th>Актив</th>
+                    <th>Цена</th>
+                    <th>24ч</th>
+                    <th>График</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="marketRows"></tbody>
+              </table>
+            </div>
+
+            <div class="glass-panel market-focus">
+              <div class="focus-head">
+                <div class="asset-title">
+                  <span class="coin-badge" id="focusBadge">BTC</span>
+                  <div>
+                    <h3 id="focusName">Bitcoin</h3>
+                    <p id="focusSymbol">BTC/USDT</p>
+                  </div>
+                </div>
+                <button class="primary-button" type="button" id="focusTrade">Торговать</button>
+              </div>
+              <canvas id="focusChart" height="260" aria-label="График выбранного актива"></canvas>
+              <div class="focus-stats">
+                <span><small>Цена</small><strong id="focusPrice">$0.00</strong></span>
+                <span><small>Изм. 24ч</small><strong id="focusChange">0.00%</strong></span>
+                <span><small>Объем</small><strong id="focusVolume">$0</strong></span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="trade">
+          <div class="trade-layout">
+            <section class="trade-chart-panel">
+              <div class="pair-bar">
+                <div class="asset-title">
+                  <span class="coin-badge" id="tradeBadge">BTC</span>
+                  <div>
+                    <h2 id="tradePair">BTC/USDT</h2>
+                    <p id="tradeName">Bitcoin</p>
+                  </div>
+                </div>
+                <div class="pair-stats">
+                  <span><small>Last</small><strong id="tradePrice">$0.00</strong></span>
+                  <span><small>24ч</small><strong id="tradeChange">0.00%</strong></span>
+                  <span><small>High</small><strong id="tradeHigh">$0.00</strong></span>
+                  <span><small>Low</small><strong id="tradeLow">$0.00</strong></span>
+                </div>
+              </div>
+              <canvas id="mainChart" height="390" aria-label="Основной график"></canvas>
+            </section>
+
+            <section class="orderbook-panel">
+              <h3>Стакан</h3>
+              <div class="orderbook" id="orderbook"></div>
+              <h3>Лента</h3>
+              <div class="tape" id="tradeTape"></div>
+            </section>
+
+            <section class="ticket-panel">
+              <div class="ticket-tabs">
+                <button class="side-tab active buy" data-side="buy" type="button">Buy</button>
+                <button class="side-tab sell" data-side="sell" type="button">Sell</button>
+              </div>
+
+              <label class="field">
+                <span>Цена</span>
+                <input id="orderPrice" type="number" min="0" step="0.01" />
+              </label>
+
+              <label class="field">
+                <span>Количество</span>
+                <input id="orderAmount" type="number" min="0" step="0.0001" placeholder="0.0000" />
+              </label>
+
+              <div class="quick-grid">
+                <button type="button" data-pct="25">25%</button>
+                <button type="button" data-pct="50">50%</button>
+                <button type="button" data-pct="75">75%</button>
+                <button type="button" data-pct="100">100%</button>
+              </div>
+
+              <div class="ticket-total">
+                <span>Total</span>
+                <strong id="orderTotal">$0.00</strong>
+              </div>
+
+              <button class="primary-button ticket-submit" id="submitOrder" type="button">Buy BTC</button>
+
+              <div class="balance-mini">
+                <span>USDT</span>
+                <strong id="cashBalance">$100,000.00</strong>
+              </div>
+              <div class="balance-mini">
+                <span id="assetBalanceLabel">BTC</span>
+                <strong id="assetBalance">0.000000</strong>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="view" id="portfolio">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Demo portfolio</p>
+              <h2>Баланс и активы</h2>
+            </div>
+            <div class="portfolio-total">
+              <small>Equity</small>
+              <strong id="portfolioTotal">$100,000.00</strong>
+            </div>
+          </div>
+
+          <div class="portfolio-layout">
+            <div class="glass-panel">
+              <canvas id="equityChart" height="260" aria-label="График портфеля"></canvas>
+            </div>
+            <div class="holdings-panel">
+              <table class="market-table holdings-table">
+                <thead>
+                  <tr>
+                    <th>Актив</th>
+                    <th>Баланс</th>
+                    <th>Стоимость</th>
+                    <th>Доля</th>
+                  </tr>
+                </thead>
+                <tbody id="holdingsRows"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section class="view" id="history">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Demo fills</p>
+              <h2>История сделок</h2>
+            </div>
+            <button class="ghost-button" id="clearHistory" type="button">Очистить</button>
+          </div>
+          <div class="market-table-wrap">
+            <table class="market-table">
+              <thead>
+                <tr>
+                  <th>Время</th>
+                  <th>Пара</th>
+                  <th>Сторона</th>
+                  <th>Цена</th>
+                  <th>Количество</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody id="historyRows"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
