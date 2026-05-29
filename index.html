@@ -142,9 +142,25 @@
             </section>
 
             <section class="ticket-panel">
+              <div class="mode-tabs" aria-label="Тип торговли">
+                <button class="mode-tab active" data-mode="spot" type="button">Spot</button>
+                <button class="mode-tab" data-mode="futures" type="button">Futures</button>
+              </div>
+
               <div class="ticket-tabs">
                 <button class="side-tab active buy" data-side="buy" type="button">Buy</button>
                 <button class="side-tab sell" data-side="sell" type="button">Sell</button>
+              </div>
+
+              <div class="futures-controls" id="futuresControls" hidden>
+                <label class="field compact-field">
+                  <span>Плечо</span>
+                  <input id="leverageInput" type="range" min="1" max="50" step="1" />
+                </label>
+                <div class="leverage-row">
+                  <strong id="leverageValue">5x</strong>
+                  <span>Макс. 50x</span>
+                </div>
               </div>
 
               <label class="field">
@@ -169,6 +185,17 @@
                 <strong id="orderTotal">$0.00</strong>
               </div>
 
+              <div class="futures-summary" id="futuresSummary" hidden>
+                <div>
+                  <span>Маржа</span>
+                  <strong id="futuresMargin">$0.00</strong>
+                </div>
+                <div>
+                  <span>Ликв.</span>
+                  <strong id="futuresLiquidation">—</strong>
+                </div>
+              </div>
+
               <button class="primary-button ticket-submit" id="submitOrder" type="button">Buy BTC</button>
 
               <div class="balance-mini">
@@ -181,6 +208,32 @@
               </div>
             </section>
           </div>
+
+          <section class="positions-panel" id="futuresPositionsPanel">
+            <div class="section-head compact-head">
+              <div>
+                <p class="eyebrow">Demo futures</p>
+                <h2>Открытые позиции</h2>
+              </div>
+            </div>
+            <div class="market-table-wrap">
+              <table class="market-table positions-table">
+                <thead>
+                  <tr>
+                    <th>Пара</th>
+                    <th>Сторона</th>
+                    <th>Плечо</th>
+                    <th>Вход</th>
+                    <th>Маржа</th>
+                    <th>PnL</th>
+                    <th>Ликв.</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="futuresRows"></tbody>
+              </table>
+            </div>
+          </section>
         </section>
 
         <section class="view" id="portfolio">
@@ -229,6 +282,7 @@
                 <tr>
                   <th>Время</th>
                   <th>Пара</th>
+                  <th>Режим</th>
                   <th>Сторона</th>
                   <th>Цена</th>
                   <th>Количество</th>
@@ -323,5 +377,6 @@
     </div>
 
     <script src="app.js"></script>
+    <script src="futures.js"></script>
   </body>
 </html>
