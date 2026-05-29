@@ -34,6 +34,10 @@
             <span class="nav-icon">≡</span>
             <span>История</span>
           </button>
+          <button class="nav-item" type="button" data-view="admin" title="Админка">
+            <span class="nav-icon">⚙</span>
+            <span>Админка</span>
+          </button>
         </nav>
 
         <div class="sidebar-card">
@@ -233,6 +237,86 @@
               </thead>
               <tbody id="historyRows"></tbody>
             </table>
+          </div>
+        </section>
+
+        <section class="view" id="admin">
+          <div class="section-head">
+            <div>
+              <p class="eyebrow">Control room</p>
+              <h2>Админская панель</h2>
+            </div>
+            <button class="ghost-button" id="exportHistory" type="button">Экспорт CSV</button>
+          </div>
+
+          <div class="admin-grid">
+            <div class="admin-stat">
+              <small>Equity</small>
+              <strong id="adminEquity">$100,000.00</strong>
+            </div>
+            <div class="admin-stat">
+              <small>Сделки</small>
+              <strong id="adminTradeCount">0</strong>
+            </div>
+            <div class="admin-stat">
+              <small>Объем</small>
+              <strong id="adminVolume">$0.00</strong>
+            </div>
+            <div class="admin-stat">
+              <small>Рынки</small>
+              <strong id="adminActiveMarkets">8</strong>
+            </div>
+          </div>
+
+          <div class="admin-layout">
+            <section class="admin-panel">
+              <h3>Настройки</h3>
+              <label class="field">
+                <span>Демо-баланс USDT</span>
+                <input id="adminBalanceInput" type="number" min="0" step="100" />
+              </label>
+              <button class="primary-button admin-action" id="saveBalance" type="button">Сохранить баланс</button>
+
+              <div class="toggle-list">
+                <label class="switch-row">
+                  <span>Торговля</span>
+                  <input id="tradingToggle" type="checkbox" checked />
+                </label>
+                <label class="switch-row">
+                  <span>Только demo stream</span>
+                  <input id="liveToggle" type="checkbox" />
+                </label>
+              </div>
+
+              <label class="field">
+                <span>Комиссия, %</span>
+                <input id="feeInput" type="number" min="0" max="5" step="0.01" />
+              </label>
+              <button class="ghost-button admin-action" id="saveFee" type="button">Сохранить комиссию</button>
+
+              <div class="danger-row">
+                <button class="ghost-button" id="adminResetPortfolio" type="button">Сброс портфеля</button>
+                <button class="ghost-button" id="adminClearHistory" type="button">Очистить сделки</button>
+              </div>
+            </section>
+
+            <section class="admin-panel admin-markets">
+              <h3>Рынки</h3>
+              <div class="market-table-wrap admin-table-wrap">
+                <table class="market-table">
+                  <thead>
+                    <tr>
+                      <th>Актив</th>
+                      <th>Показ</th>
+                      <th>Цена</th>
+                      <th>24ч</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="adminMarketRows"></tbody>
+                </table>
+              </div>
+            </section>
           </div>
         </section>
       </main>
