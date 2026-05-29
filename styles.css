@@ -62,6 +62,12 @@ button {
   color: inherit;
 }
 
+button:disabled {
+  cursor: not-allowed;
+  filter: grayscale(0.35);
+  opacity: 0.58;
+}
+
 .app-shell {
   display: grid;
   grid-template-columns: 256px minmax(0, 1fr);
@@ -166,6 +172,8 @@ button {
 .orderbook-panel,
 .ticket-panel,
 .holdings-panel,
+.admin-panel,
+.admin-stat,
 .market-table-wrap {
   border: 1px solid var(--stroke);
   background: var(--panel);
@@ -677,6 +685,95 @@ canvas {
   gap: 16px;
 }
 
+.admin-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(160px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.admin-stat {
+  min-height: 104px;
+  padding: 18px;
+  border-radius: 8px;
+}
+
+.admin-stat small {
+  color: var(--muted);
+}
+
+.admin-stat strong {
+  display: block;
+  margin-top: 10px;
+  font-size: clamp(1.35rem, 2.4vw, 2.1rem);
+}
+
+.admin-layout {
+  display: grid;
+  grid-template-columns: 340px minmax(0, 1fr);
+  gap: 16px;
+}
+
+.admin-panel {
+  padding: 16px;
+  border-radius: 8px;
+}
+
+.admin-action {
+  width: 100%;
+  margin-bottom: 14px;
+}
+
+.toggle-list {
+  display: grid;
+  gap: 10px;
+  margin: 16px 0;
+}
+
+.switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 46px;
+  padding: 0 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.switch-row input {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--pink);
+}
+
+.danger-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.admin-table-wrap {
+  box-shadow: none;
+}
+
+.admin-price {
+  width: 120px;
+  min-height: 36px;
+  padding: 0 10px;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.07);
+  color: var(--text);
+}
+
+.mini-check {
+  width: 20px;
+  height: 20px;
+  accent-color: var(--pink);
+}
+
 .allocation {
   display: grid;
   gap: 8px;
@@ -726,7 +823,7 @@ canvas {
   }
 
   .nav-list {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .nav-item {
@@ -743,7 +840,9 @@ canvas {
 
   .market-grid,
   .portfolio-layout,
-  .trade-layout {
+  .trade-layout,
+  .admin-layout,
+  .admin-grid {
     grid-template-columns: 1fr;
   }
 
