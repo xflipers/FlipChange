@@ -130,6 +130,7 @@ button:disabled {
 .ghost-button,
 .primary-button,
 .segmented button,
+.mode-tab,
 .quick-grid button,
 .side-tab {
   min-height: 42px;
@@ -175,6 +176,7 @@ button:disabled {
 .trade-chart-panel,
 .orderbook-panel,
 .ticket-panel,
+.positions-panel,
 .holdings-panel,
 .admin-panel,
 .admin-stat,
@@ -413,6 +415,7 @@ h3 {
 .trade-chart-panel,
 .orderbook-panel,
 .ticket-panel,
+.positions-panel,
 .holdings-panel {
   border-radius: 8px;
 }
@@ -600,6 +603,30 @@ canvas {
   margin-bottom: 14px;
 }
 
+.mode-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+  padding: 4px;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.mode-tab {
+  min-height: 34px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.mode-tab.active {
+  background: linear-gradient(135deg, rgba(255, 78, 205, 0.28), rgba(85, 234, 223, 0.13));
+  color: var(--text);
+}
+
 .side-tab {
   border-color: var(--stroke);
   background: rgba(255, 255, 255, 0.05);
@@ -643,6 +670,49 @@ canvas {
   box-shadow: 0 0 0 3px rgba(255, 78, 205, 0.13);
 }
 
+.compact-field {
+  margin-bottom: 6px;
+}
+
+.futures-controls {
+  margin-bottom: 12px;
+  padding: 12px;
+  border: 1px solid var(--stroke);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.045);
+}
+
+.futures-controls input[type="range"] {
+  accent-color: var(--pink);
+}
+
+.leverage-row,
+.futures-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.leverage-row span,
+.futures-summary span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.futures-summary {
+  margin-bottom: 14px;
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.futures-summary div {
+  display: grid;
+  gap: 4px;
+}
+
 .quick-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
@@ -673,6 +743,19 @@ canvas {
 
 .sell-submit {
   background: linear-gradient(135deg, var(--red), #c84fff);
+}
+
+.positions-panel {
+  margin-top: 16px;
+  padding: 16px;
+}
+
+.compact-head {
+  margin-bottom: 12px;
+}
+
+.positions-table td:last-child {
+  text-align: right;
 }
 
 .portfolio-total {
