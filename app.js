@@ -19,9 +19,16 @@ const state = {
   live: false,
   market: {},
   timers: {},
+  admin: {
+    tradingEnabled: true,
+    forceDemo: false,
+    feeRate: 0.1,
+    markets: {},
+  },
 };
 
 const els = {};
+let realtimeSocket = null;
 
 function init() {
   cacheElements();
@@ -75,6 +82,20 @@ function cacheElements() {
     "historyRows",
     "clearHistory",
     "resetDemo",
+    "adminBalanceInput",
+    "saveBalance",
+    "tradingToggle",
+    "liveToggle",
+    "feeInput",
+    "saveFee",
+    "adminMarketRows",
+    "adminTradeCount",
+    "adminVolume",
+    "adminActiveMarkets",
+    "adminEquity",
+    "exportHistory",
+    "adminResetPortfolio",
+    "adminClearHistory",
   ].forEach((id) => {
     els[id] = document.getElementById(id);
   });
@@ -87,6 +108,11 @@ function loadDemoState() {
     state.holdings = saved.holdings || {};
     state.trades = Array.isArray(saved.trades) ? saved.trades : [];
     state.equity = Array.isArray(saved.equity) ? saved.equity : [];
+    state.admin = {
+      ...state.admin,
+      ...(saved.admin || {}),
+      markets: saved.admin?.markets || {},
+    };
   } catch {
     saveDemoState();
   }
@@ -100,6 +126,7 @@ function saveDemoState() {
       holdings: state.holdings,
       trades: state.trades,
       equity: state.equity.slice(-160),
+      admin: state.admin,
     }),
   );
 }
@@ -113,16 +140,18 @@ function initializeMarkets() {
       return coin.seed * (1 + wave + drift + noise);
     });
 
-    const price = history.at(-1);
+    const adminMarket = state.admin.markets[coin.symbol] || {};
+    const price = Number.isFinite(adminMarket.manualPrice) ? adminMarket.manualPrice : history.at(-1);
     state.market[coin.symbol] = {
       ...coin,
+      enabled: adminMarket.enabled !== false,
       price,
       open: history[0],
-      high: Math.max(...history),
-      low: Math.min(...history),
+      high: Math.max(...history, price),
+      low: Math.min(...history, price),
       change: ((price - history[0]) / history[0]) * 100,
       volume: price * (220000 + index * 83000),
-      history,
+      history: [...history.slice(0, -1), price],
       lastTick: Date.now(),
     };
   });
@@ -144,11 +173,12 @@ async function seedHistory() {
         if (!values.length) return;
 
         const item = state.market[coin.symbol];
+        const manualPrice = state.admin.markets[coin.symbol]?.manualPrice;
         item.history = values;
-        item.price = values.at(-1);
+        item.price = Number.isFinite(manualPrice) ? manualPrice : values.at(-1);
         item.open = values[0];
-        item.high = Math.max(...values);
-        item.low = Math.min(...values);
+        item.high = Math.max(...values, item.price);
+        item.low = Math.min(...values, item.price);
         item.change = ((item.price - item.open) / item.open) * 100;
         item.volume = Number(rows.at(-1)?.[7]) || item.volume;
       } catch {
@@ -160,11 +190,18 @@ async function seedHistory() {
 }
 
 function connectRealtime() {
+  if (state.admin.forceDemo) {
+    setConnectionMode(false);
+    return;
+  }
+
   const streams = coins.map((coin) => `${coin.pair.toLowerCase()}@ticker`).join("/");
   let socket;
 
   try {
+    if (realtimeSocket) realtimeSocket.close();
     socket = new WebSocket(`wss://stream.binance.com:9443/stream?streams=${streams}`);
+    realtimeSocket = socket;
   } catch {
     setConnectionMode(false);
     return;
@@ -173,6 +210,7 @@ function connectRealtime() {
   socket.addEventListener("open", () => setConnectionMode(true));
 
   socket.addEventListener("message", (event) => {
+    if (state.admin.forceDemo) return;
     try {
       const payload = JSON.parse(event.data);
       const data = payload.data || payload;
@@ -196,7 +234,9 @@ function connectRealtime() {
   socket.addEventListener("close", () => {
     setConnectionMode(false);
     clearTimeout(state.timers.reconnect);
-    state.timers.reconnect = setTimeout(connectRealtime, 3500);
+    if (!state.admin.forceDemo) {
+      state.timers.reconnect = setTimeout(connectRealtime, 3500);
+    }
   });
 
   socket.addEventListener("error", () => setConnectionMode(false));
@@ -205,6 +245,9 @@ function connectRealtime() {
 function updateMarket(symbol, patch) {
   const item = state.market[symbol];
   if (!item || !Number.isFinite(patch.price)) return;
+
+  const manualPrice = state.admin.markets[symbol]?.manualPrice;
+  if (Number.isFinite(manualPrice) && !patch.adminOverride) return;
 
   item.price = patch.price;
   item.open = Number.isFinite(patch.open) ? patch.open : item.open;
@@ -258,16 +301,18 @@ function setConnectionMode(isLive) {
 }
 
 function renderShell() {
+  ensureSelectedMarket();
   renderTickerStrip();
   renderMarketRows();
   renderSelectedPanels();
   renderPortfolio();
   renderHistory();
+  renderAdmin();
   drawAllCharts();
 }
 
 function renderTickerStrip() {
-  els.tickerStrip.innerHTML = coins
+  els.tickerStrip.innerHTML = activeCoins()
     .map((coin) => {
       const item = state.market[coin.symbol];
       return `
@@ -286,7 +331,7 @@ function renderTickerStrip() {
 }
 
 function renderMarketRows() {
-  els.marketRows.innerHTML = coins
+  els.marketRows.innerHTML = activeCoins()
     .map((coin) => {
       const item = state.market[coin.symbol];
       return `
@@ -452,6 +497,49 @@ function renderHistory() {
     .join("");
 }
 
+function renderAdmin() {
+  if (!els.adminMarketRows) return;
+
+  const total = portfolioValue();
+  const totalVolume = state.trades.reduce((sum, trade) => sum + trade.total, 0);
+  els.adminEquity.textContent = formatMoney(total);
+  els.adminTradeCount.textContent = String(state.trades.length);
+  els.adminVolume.textContent = formatMoney(totalVolume);
+  els.adminActiveMarkets.textContent = `${activeCoins().length}/${coins.length}`;
+
+  if (document.activeElement !== els.adminBalanceInput) {
+    els.adminBalanceInput.value = state.cash.toFixed(2);
+  }
+  if (document.activeElement !== els.feeInput) {
+    els.feeInput.value = state.admin.feeRate;
+  }
+  els.tradingToggle.checked = state.admin.tradingEnabled;
+  els.liveToggle.checked = state.admin.forceDemo;
+
+  if (!els.adminMarketRows.contains(document.activeElement)) {
+    els.adminMarketRows.innerHTML = coins
+      .map((coin) => {
+        const item = state.market[coin.symbol];
+        const adminMarket = state.admin.markets[coin.symbol] || {};
+        return `
+          <tr>
+            <td>
+              <div class="table-asset">
+                <span class="coin-badge" style="background:${coinGradient(coin)}">${coin.symbol}</span>
+                <span><strong>${coin.name}</strong><small>${coin.symbol}/USDT</small></span>
+              </div>
+            </td>
+            <td><input class="mini-check" type="checkbox" data-admin-enabled="${coin.symbol}" ${item.enabled ? "checked" : ""} /></td>
+            <td><input class="admin-price" type="number" min="0" step="0.0001" data-admin-price="${coin.symbol}" value="${priceInputValue(item.price)}" /></td>
+            <td class="${item.change >= 0 ? "positive" : "negative"}">${formatPercent(item.change)}</td>
+            <td><button class="row-button" type="button" data-admin-apply-price="${coin.symbol}">${Number.isFinite(adminMarket.manualPrice) ? "Reset" : "Set"}</button></td>
+          </tr>
+        `;
+      })
+      .join("");
+  }
+}
+
 function attachEvents() {
   document.querySelectorAll("[data-view]").forEach((button) => {
     button.addEventListener("click", () => showView(button.dataset.view));
@@ -471,6 +559,16 @@ function attachEvents() {
 
     const pctTarget = event.target.closest("[data-pct]");
     if (pctTarget) setQuickAmount(Number(pctTarget.dataset.pct));
+
+    const priceTarget = event.target.closest("[data-admin-apply-price]");
+    if (priceTarget) applyAdminPrice(priceTarget.dataset.adminApplyPrice);
+  });
+
+  document.body.addEventListener("change", (event) => {
+    const enabledTarget = event.target.closest("[data-admin-enabled]");
+    if (enabledTarget) {
+      setMarketEnabled(enabledTarget.dataset.adminEnabled, enabledTarget.checked);
+    }
   });
 
   els.focusTrade.addEventListener("click", () => showView("trade"));
@@ -482,6 +580,13 @@ function attachEvents() {
   els.submitOrder.addEventListener("click", submitOrder);
   els.clearHistory.addEventListener("click", clearHistory);
   els.resetDemo.addEventListener("click", resetDemo);
+  els.saveBalance.addEventListener("click", saveAdminBalance);
+  els.saveFee.addEventListener("click", saveAdminFee);
+  els.tradingToggle.addEventListener("change", toggleTrading);
+  els.liveToggle.addEventListener("change", toggleDemoStream);
+  els.exportHistory.addEventListener("click", exportHistoryCsv);
+  els.adminResetPortfolio.addEventListener("click", resetPortfolio);
+  els.adminClearHistory.addEventListener("click", clearHistory);
 
   document.querySelectorAll("[data-side]").forEach((button) => {
     button.addEventListener("click", () => {
@@ -503,7 +608,7 @@ function showView(view) {
 }
 
 function selectCoin(symbol) {
-  if (!state.market[symbol]) return;
+  if (!state.market[symbol] || state.market[symbol].enabled === false) return;
   state.selected = symbol;
   els.orderPrice.dataset.manual = "false";
   renderShell();
@@ -513,13 +618,34 @@ function currentMarket() {
   return state.market[state.selected];
 }
 
+function activeCoins() {
+  return coins.filter((coin) => state.market[coin.symbol]?.enabled !== false);
+}
+
+function ensureSelectedMarket() {
+  if (!activeCoins().length) {
+    state.market[coins[0].symbol].enabled = true;
+    state.admin.markets[coins[0].symbol] = {
+      ...(state.admin.markets[coins[0].symbol] || {}),
+      enabled: true,
+    };
+  }
+  if (state.market[state.selected]?.enabled !== false) return;
+  state.selected = activeCoins()[0]?.symbol || coins[0].symbol;
+  els.orderPrice.dataset.manual = "false";
+}
+
 function updateOrderTotal() {
   const item = currentMarket();
   const price = Number(els.orderPrice.value) || item.price;
   const amount = Number(els.orderAmount.value) || 0;
   const total = price * amount;
-  els.orderTotal.textContent = formatMoney(total);
-  els.submitOrder.textContent = `${state.side === "buy" ? "Buy" : "Sell"} ${item.symbol}`;
+  const fee = total * (state.admin.feeRate / 100);
+  els.orderTotal.textContent = formatMoney(total + fee);
+  els.submitOrder.textContent = state.admin.tradingEnabled
+    ? `${state.side === "buy" ? "Buy" : "Sell"} ${item.symbol}`
+    : "Trading disabled";
+  els.submitOrder.disabled = !state.admin.tradingEnabled;
   els.submitOrder.classList.toggle("sell-submit", state.side === "sell");
 }
 
@@ -537,18 +663,129 @@ function setQuickAmount(percent) {
   updateOrderTotal();
 }
 
+function saveAdminBalance() {
+  const nextCash = parseInputNumber(els.adminBalanceInput.value);
+  if (!Number.isFinite(nextCash) || nextCash < 0) {
+    pulseTicket();
+    return;
+  }
+
+  state.cash = nextCash;
+  saveDemoState();
+  renderShell();
+}
+
+function saveAdminFee() {
+  const nextFee = parseInputNumber(els.feeInput.value);
+  if (!Number.isFinite(nextFee) || nextFee < 0 || nextFee > 5) {
+    pulseTicket();
+    return;
+  }
+
+  state.admin.feeRate = Number(nextFee.toFixed(2));
+  saveDemoState();
+  renderShell();
+}
+
+function toggleTrading() {
+  state.admin.tradingEnabled = els.tradingToggle.checked;
+  saveDemoState();
+  renderShell();
+}
+
+function toggleDemoStream() {
+  state.admin.forceDemo = els.liveToggle.checked;
+  if (state.admin.forceDemo && realtimeSocket) {
+    realtimeSocket.close();
+    realtimeSocket = null;
+  }
+  setConnectionMode(false);
+  if (!state.admin.forceDemo) connectRealtime();
+  saveDemoState();
+  renderShell();
+}
+
+function setMarketEnabled(symbol, enabled) {
+  if (!state.admin.markets[symbol]) state.admin.markets[symbol] = {};
+  if (!enabled && activeCoins().length <= 1 && state.market[symbol]?.enabled !== false) {
+    renderShell();
+    return;
+  }
+
+  state.admin.markets[symbol].enabled = enabled;
+  state.market[symbol].enabled = enabled;
+  saveDemoState();
+  renderShell();
+}
+
+function applyAdminPrice(symbol) {
+  const input = document.querySelector(`[data-admin-price="${symbol}"]`);
+  if (!input || !state.market[symbol]) return;
+
+  const adminMarket = state.admin.markets[symbol] || {};
+  if (Number.isFinite(adminMarket.manualPrice)) {
+    delete adminMarket.manualPrice;
+    state.admin.markets[symbol] = adminMarket;
+    document.activeElement?.blur();
+    saveDemoState();
+    renderShell();
+    return;
+  }
+
+  const nextPrice = parseInputNumber(input.value);
+  if (!Number.isFinite(nextPrice) || nextPrice <= 0) {
+    pulseTicket();
+    return;
+  }
+
+  state.admin.markets[symbol] = { ...adminMarket, manualPrice: nextPrice };
+  updateMarket(symbol, {
+    price: nextPrice,
+    open: state.market[symbol].open,
+    high: Math.max(state.market[symbol].high, nextPrice),
+    low: Math.min(state.market[symbol].low, nextPrice),
+    adminOverride: true,
+  });
+  document.activeElement?.blur();
+  saveDemoState();
+  renderShell();
+}
+
+function exportHistoryCsv() {
+  const header = ["time", "symbol", "side", "price", "amount", "total", "fee"];
+  const rows = state.trades.map((trade) => [
+    new Date(trade.time).toISOString(),
+    `${trade.symbol}/USDT`,
+    trade.side,
+    trade.price,
+    trade.amount,
+    trade.total,
+    trade.fee || 0,
+  ]);
+  const csv = [header, ...rows].map((row) => row.join(",")).join("\n");
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = "flipchange-trades.csv";
+  link.click();
+  URL.revokeObjectURL(url);
+}
+
 function submitOrder() {
   const item = currentMarket();
   const price = Math.max(Number(els.orderPrice.value) || item.price, 0);
   const amount = Math.max(Number(els.orderAmount.value) || 0, 0);
   const total = price * amount;
+  const fee = total * (state.admin.feeRate / 100);
+  const totalWithFee = total + fee;
 
-  if (!amount || !total) {
+  if (!state.admin.tradingEnabled || !amount || !total) {
     pulseTicket();
     return;
   }
 
-  if (state.side === "buy" && total > state.cash + 0.000001) {
+  if (state.side === "buy" && totalWithFee > state.cash + 0.000001) {
     pulseTicket();
     return;
   }
@@ -559,10 +796,10 @@ function submitOrder() {
   }
 
   if (state.side === "buy") {
-    state.cash -= total;
+    state.cash -= totalWithFee;
     state.holdings[item.symbol] = (state.holdings[item.symbol] || 0) + amount;
   } else {
-    state.cash += total;
+    state.cash += Math.max(total - fee, 0);
     state.holdings[item.symbol] = Math.max((state.holdings[item.symbol] || 0) - amount, 0);
   }
 
@@ -574,6 +811,7 @@ function submitOrder() {
     price,
     amount,
     total,
+    fee,
   });
 
   els.orderAmount.value = "";
@@ -597,6 +835,7 @@ function clearHistory() {
   state.trades = [];
   saveDemoState();
   renderHistory();
+  renderAdmin();
 }
 
 function resetDemo() {
@@ -609,10 +848,20 @@ function resetDemo() {
   renderShell();
 }
 
+function resetPortfolio() {
+  state.cash = 100000;
+  state.holdings = {};
+  state.equity = [];
+  els.orderAmount.value = "";
+  saveDemoState();
+  renderShell();
+}
+
 function refreshDynamicPanels() {
   renderOrderbook();
   renderTape();
   renderPortfolio();
+  renderAdmin();
   drawAllCharts();
   saveDemoState();
 }
@@ -750,6 +999,10 @@ function formatCompact(value) {
     notation: "compact",
     maximumFractionDigits: 2,
   }).format(value || 0);
+}
+
+function parseInputNumber(value) {
+  return Number(String(value).replace(",", ".").replace(/\s/g, ""));
 }
 
 document.addEventListener("DOMContentLoaded", init);
