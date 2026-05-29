@@ -29,19 +29,24 @@ const state = {
 
 const els = {};
 let realtimeSocket = null;
+const ADMIN_HASH = "#flipchange-admin-7329";
+let adminUnlocked = false;
 
 function init() {
   cacheElements();
+  unlockAdminFromHash();
   loadDemoState();
   initializeMarkets();
   setConnectionMode(false);
   renderShell();
   attachEvents();
+  if (adminUnlocked) showView("admin");
   seedHistory();
   connectRealtime();
   setInterval(updateSyntheticPrices, 1800);
   setInterval(refreshDynamicPanels, 1200);
   window.addEventListener("resize", drawAllCharts);
+  window.addEventListener("hashchange", handleHashChange);
 }
 
 function cacheElements() {
@@ -301,6 +306,7 @@ function setConnectionMode(isLive) {
 }
 
 function renderShell() {
+  renderAdminAccess();
   ensureSelectedMarket();
   renderTickerStrip();
   renderMarketRows();
@@ -599,12 +605,38 @@ function attachEvents() {
 }
 
 function showView(view) {
+  if (view === "admin" && !adminUnlocked) {
+    view = "markets";
+  }
+
   document.querySelectorAll(".view").forEach((panel) => panel.classList.remove("active"));
   document.getElementById(view).classList.add("active");
   document.querySelectorAll(".nav-item").forEach((button) => {
     button.classList.toggle("active", button.dataset.view === view);
   });
   requestAnimationFrame(drawAllCharts);
+}
+
+function unlockAdminFromHash() {
+  adminUnlocked = window.location.hash === ADMIN_HASH;
+}
+
+function handleHashChange() {
+  const wasUnlocked = adminUnlocked;
+  unlockAdminFromHash();
+  renderAdminAccess();
+  if (adminUnlocked && !wasUnlocked) {
+    showView("admin");
+  }
+  if (!adminUnlocked && document.getElementById("admin").classList.contains("active")) {
+    showView("markets");
+  }
+}
+
+function renderAdminAccess() {
+  document.querySelectorAll("[data-admin-nav]").forEach((button) => {
+    button.hidden = !adminUnlocked;
+  });
 }
 
 function selectCoin(symbol) {
