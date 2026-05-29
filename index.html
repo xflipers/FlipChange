@@ -3,17 +3,18 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>NovaX Demo Exchange</title>
+    <title data-brand-title>NovaX Demo Exchange</title>
     <link rel="stylesheet" href="styles.css" />
+    <link rel="stylesheet" href="admin-customizer.css" />
   </head>
   <body>
     <div class="app-shell">
       <aside class="sidebar" aria-label="Основная навигация">
-        <a class="brand" href="#" aria-label="NovaX">
+        <a class="brand" href="#" aria-label="NovaX" data-brand-link>
           <span class="brand-mark"></span>
           <span>
-            <strong>NovaX</strong>
-            <small>Demo Exchange</small>
+            <strong data-brand-name>NovaX</strong>
+            <small data-brand-tagline>Demo Exchange</small>
           </span>
         </a>
 
@@ -50,8 +51,8 @@
       <main class="main">
         <header class="topbar">
           <div>
-            <p class="eyebrow">Premium crypto terminal</p>
-            <h1>NovaX</h1>
+            <p class="eyebrow" data-brand-eyebrow>Premium crypto terminal</p>
+            <h1 data-brand-name>NovaX</h1>
           </div>
           <div class="topbar-actions">
             <div class="status-pill" id="connectionStatus">
@@ -324,6 +325,44 @@
 
           <div class="admin-layout">
             <section class="admin-panel">
+              <h3>Бренд и цвета</h3>
+              <label class="field">
+                <span>Название сайта</span>
+                <input id="siteNameInput" type="text" maxlength="24" />
+              </label>
+              <label class="field">
+                <span>Подпись</span>
+                <input id="siteTaglineInput" type="text" maxlength="42" />
+              </label>
+              <label class="field">
+                <span>Верхняя фраза</span>
+                <input id="siteEyebrowInput" type="text" maxlength="42" />
+              </label>
+
+              <div class="theme-grid">
+                <label class="color-field">
+                  <span>Основной</span>
+                  <input id="primaryColorInput" type="color" />
+                </label>
+                <label class="color-field">
+                  <span>Второй</span>
+                  <input id="secondaryColorInput" type="color" />
+                </label>
+                <label class="color-field">
+                  <span>Акцент</span>
+                  <input id="accentColorInput" type="color" />
+                </label>
+                <label class="color-field">
+                  <span>Фон</span>
+                  <input id="backgroundColorInput" type="color" />
+                </label>
+              </div>
+
+              <button class="primary-button admin-action" id="saveBranding" type="button">Сохранить оформление</button>
+              <button class="ghost-button admin-action" id="resetBranding" type="button">Вернуть стиль</button>
+            </section>
+
+            <section class="admin-panel">
               <h3>Настройки</h3>
               <label class="field">
                 <span>Демо-баланс USDT</span>
@@ -378,5 +417,6 @@
 
     <script src="app.js"></script>
     <script src="futures.js"></script>
+    <script src="admin-customizer.js"></script>
   </body>
 </html>
